@@ -1,0 +1,551 @@
+\documentclass{article}
+
+% if you need to pass options to natbib, use, e.g.:
+% \PassOptionsToPackage{numbers, compress}{natbib}
+% before loading nips_2016
+%
+% to avoid loading the natbib package, add option nonatbib:
+% \usepackage[nonatbib]{nips_2016}
+
+%\usepackage{nips_2016}
+
+% to compile a camera-ready version, add the [final] option, e.g.:
+ \usepackage[final]{nips_2016}
+
+\usepackage[utf8]{inputenc} % allow utf-8 input
+\usepackage[T1]{fontenc}    % use 8-bit T1 fonts
+\usepackage{hyperref}       % hyperlinks
+\usepackage{url}            % simple URL typesetting
+\usepackage{booktabs}       % professional-quality tables
+\usepackage{amsfonts}       % blackboard math symbols
+\usepackage{nicefrac}       % compact symbols for 1/2, etc.
+\usepackage{microtype}      % microtypography
+
+\usepackage{multicol}       % multiple columns
+\usepackage{algorithm}
+\usepackage{algpseudocode}
+\usepackage{pifont}
+\usepackage{color}
+\usepackage{listings}
+\usepackage{fancyhdr}
+\usepackage{mathrsfs}
+\usepackage{amsmath}
+\usepackage{amsfonts}
+\usepackage{amsthm}
+\usepackage{epsfig}
+\usepackage[dvipsnames]{xcolor}
+\usepackage{fancyvrb}
+\usepackage{bbm}
+\usepackage{afterpage}
+\usepackage[titletoc]{appendix}
+
+\usepackage{pgfplots}
+\pgfplotsset{compat=1.8}
+\usepgfplotslibrary{statistics}
+
+% redefine \VerbatimInput
+\RecustomVerbatimCommand{\VerbatimInput}{VerbatimInput}%
+{fontsize=\footnotesize,
+ %
+ frame=lines,  % top and bottom rule only
+ framesep=2em, % separation between frame and text
+ rulecolor=\color{Gray},
+ %
+ label=\fbox{\color{Black}Duality and Densities},
+ labelposition=topline,
+ %
+ commandchars=\|\(\), % escape character and argument delimiters for
+                      % commands within the verbatim
+ commentchar=*        % comment character
+}
+
+
+\DeclareMathOperator*{\argmin}{arg\!\min}
+\DeclareMathOperator*{\argmax}{arg\!\max}
+\DeclareMathOperator{\R}{\mathbb{R}}
+\DeclareMathOperator{\E}{\mathbb{E}}
+\DeclareMathOperator{\Z}{\mathbb{Z}}
+\DeclareMathOperator{\N}{\mathbb{N}}
+\DeclareMathOperator{\sign}{sign}
+\DeclareMathOperator{\1}{\mathbbm{1}}
+\newcommand{\y}{\tilde{y}}
+\newcommand{\x}{\tilde{x}}
+\newcommand{\z}{\tilde{z}}
+
+
+\title{Toward Genetically Generated Ensembles of Neural Networks}
+
+% The \author macro works with any number of authors. There are two
+% commands used to separate the names and addresses of multiple
+% authors: \And and \AND.
+%
+% Using \And between authors leaves it to LaTeX to determine where to
+% break the lines. Using \AND forces a line break at that point. So,
+% if LaTeX puts 3 of 4 authors names on the first line, and the last
+% on the second line, try using \AND instead of \And before the third
+% author name.
+
+\author{
+  Robert Reiss%\thanks{Use footnote for providing further
+% information about author (webpage, alternative
+% address)---\emph{not} for acknowledging funding agencies.} 
+\\
+  Department of Computer Science\\
+  University of British Columbia\\
+  \texttt{rreiss@gmail.com} \\
+  %% examples of more authors
+  \And
+  Saifuddin Syed \\
+  Department of Mathematics \\
+  University of British Columbia\\
+  \texttt{ssyed@math.ubc.ca} \\
+  %% \AND
+  %% Coauthor \\
+  %% Affiliation \\
+  %% Address \\
+  %% \texttt{email} \\
+  %% \And
+  %% Coauthor \\
+  %% Affiliation \\
+  %% Address \\
+  %% \texttt{email} \\
+  %% \And
+  %% Coauthor \\
+  %% Affiliation \\
+  %% Address \\
+  %% \texttt{email} \\
+}
+
+\begin{document}
+% \nipsfinalcopy is no longer used
+
+\maketitle
+
+\begin{abstract}
+Neural networks are powerful yet notoriously fickle beasts. They require tuning by hand over many parameters. Meanwhile the best tuning
+methods are only marginally instructive, generally consisting of anecdotal evidence and values that are known to work. 
+Furthermore, even with the same parameters, neural networks often exhibit a range of efficacy, as training is stochastic in nature. We
+present a method which utilizes a genetic algorithm to train capable neural networks, while simultaneously producing an ensemble to harness their combined
+power. We demonstrate that this can lead to excellent candidates for further hand tuning, and powerful ensembles which are a match for
+finely hand-tuned neural networks. These ensembles are surprisingly robust. Multiple training runs produced very similar results,
+which were remarkably stable. This approach allows for an automated process for training capable neural networks, reducing
+the drudgery of hand-tuning.
+\end{abstract}
+
+\section{Introduction}
+Over the last two decades, neural networks have become a force to be reckoned with in machine learning literature.
+Their effectiveness at solving both modern and classical problems is undeniable. 
+In practice however, it is incredibly difficult to train neural networks. 
+There are two main issues which arise when training neural networks: the loss function is highly non-convex,
+and neural networks are very sensitive to architecture, i.e. the number of layers and hidden units.
+Stochastic gradient descent and back propagation have been quite effective at tackling the first issue, 
+but addressing the architecture problem does not have a standard, elegant solution. Neural networks are often fine-tuned by hand
+based on heuristics, anecdotal evidence, and best practice. Since the connections in each layer are highly dependent on one another,
+it takes a vast amount of trial and error to get a well-trained model. Overall the process can be very labour intensive 
+and frustratingly inefficient. Moreover, it is generally not known what the upper bound on the performance is for a given
+problem, nor if neural networks are even able to treat the problem with great precision. Luckily, there is often
+a ``good-enough'' error rate; a rate sufficiently low as to be acceptable given real world constraints. Thus any solution
+which provides a ``good-enough'' result will be viable for a given application. This provides the motivation for constructing an 
+ensemble of networks, which may surpass the ``good-enough'' threshold without further intervention.
+
+We use a genetic algorithm to automate the process of finding and training suitable architectures
+for neural networks with $L$ layers. We simultaneously produce an ensemble from the trained networks. 
+In short, we explore the state space of model parameters by randomly initializing a population of neural networks. 
+We then assign a fitness score based on how well the networks do on a validation set after training. 
+The fitter networks have a better chance of passing on their traits to 
+successive generations, while the weaker ones die out. 
+As the generations progress, the average fitness tends to increase.
+We then create an ensemble from the best models found during the search. 
+
+
+Our method produces well trained neural networks, trading off additional computational time for manual labour.
+We simultaneously produce better networks while constructing an ensemble in an unsupervised manner
+(in the colloquial sense). Thus, if the ensemble produces results which are ``good-enough'', we are done.
+On the other hand, if additional precision is required, we observe successful models as the generations progress. 
+These serve as a good foundation for further fine-tuning. Finally the method can be extended beyond neural network architecture
+to also optimize for other hyperparameters: the regularization rate, learning rate, dropout rate, etc.
+
+
+\section{Genetic Algorithm's for NN Architecture}
+A genetic algorithm is an optimization strategy that mimics the principles
+of evolution to search the parameter space $\Theta$, where $\Theta$ is a $d$ dimensional space of parameters. 
+This occurs in four stages: initialization, selection, crossover, and mutation \cite{Mitchell}.
+
+We begin with a population $P\subset \Theta$, called \emph{phenotypes}.
+The phenotypes are encoded into a $d$-dimensional vectors; with each component representing a characteristic of the population
+called a \emph{gene}. Each phenotype's fitness is computed via a fitness function
+$f:\Theta\rightarrow\R$. Fitter phenotypes are more likely to be selected to proceed into the next generation. 
+Some of the selected phenotypes breed by exchanging genes (known as \emph{crossover}) to produce offspring - the next generation. 
+To allow exploration of other genes not part of the initial population,
+we \emph{mutate} some of the genes. That is we allow some genes to reinitialize with given probability.  
+The process is repeated until some stopping criterion is met.  In principal this should produce a population that converges
+to a higher fitness level as the generations progress.  
+
+\subsection{Initialization} 
+Given a neural network with $L$ layers, the architecture is specified by the number of hidden units in each layer. 
+Thus, the parameter space searched is the set of possible architectures $\Theta=\N^L$. 
+Each $x\in\Theta$ is a vector where $x_i$ represents the number of hidden units in layer $i$. 
+Instead of $\N$, we limit our search to the cube $\Theta=[1,N]^L$, for some $N$.
+We initialize our population size $M$ by setting $P_0=\{x_1,\dots,x_p\}$, where $x_j$ is a random vector chosen 
+uniformly from $\Theta$. A population in generation $t$ is denoted by $P_t$.
+
+\subsubsection{Fitness}
+Given a trained neural neural network with architecture $x$, the fitness $f(x)$ is the performance of the network on a validation set. 
+
+
+\subsection{Selection}
+Recall the population at generation $t$ is $P_t$. The fitter phenotypes in $P_t$ are more
+likely to be selected than the weaker ones by letting $p(x)$, the probability that $x\in P_t$ is chosen,
+be proportional to its fitness. Namely:
+\[p(x)=\frac{f(x)}{\sum_{y\in P_t}f(y)}.\]
+Let $\tilde{P}_t$ denote the new population of size $M$ generated and sampled from $P_t$ via $p(x)$.
+
+\subsection{Crossover}
+During the crossover phase, each phenotype in $\tilde{P}_t$ is chosen to breed with some probability $\kappa$ -
+the \emph{crossover rate} . In preliminary testing, we found $\kappa=0.3$ to be a good value. Generally, the 
+algorithm was not very sensitive to the crossover rate.
+
+Let ${\tilde{x}_1,\dots,\tilde{x}_m}\subset \tilde{P}_t$ denote the phenotypes that are chosen for breeding.
+Since they are already random, we decided to breed the genes of $\tilde{x}_i$ with $\tilde{x}_{i+1}$, where the subscripts are mod $m$.
+For each $1\leq i\leq m$, we pick a random integer $1\leq k_i< L$ and define the child $\hat{x}_i$ by the vector
+\[(\hat{x}_i )_j= \begin{cases} (\tilde{x}_i)_j &\mbox{if } 1\leq j\leq k_i \\ 
+(\tilde{x}_{i+1})_j & \mbox{if } k_i<j\leq L \end{cases} \]
+Let $\hat{P}_t$ denote $\tilde{P}_t$, where $\tilde{x}_i$ is replaced with $\hat{x}_i$.
+
+\subsection{Mutation}
+Finally, to bring some genetic diversity into the population, we allow some of the genes to mutate.
+For each $\hat{x}\in\hat{P}_t$, and for each $1\leq j\leq L$,
+we let $(\hat{x})_j$ reinitialize to an integer between 1 and $N$ with probability $\mu$,
+called the \emph{mutation rate}. We found that $\mu = 0.3$ worked well.
+As with the crossover rate, the algorithm was not particularly sensitive to the mutation rate. Where a greater mutation rate
+proved useful was when an evolution got stuck in a rut - when every member of the population has the same low fitness.
+In these cases, a higher mutation rate allowed the population to exit the rut faster.
+After mutation has occurred the generation $t$ is over. The new post-mutation population is denoted $P_{t+1}$.
+
+The procedure now repeats starting with the fitness phase for a specified number of generations.
+
+\subsection{Ensemble Classifier}
+To get to generation $t$, we must train each model in $P_s$ for $s<t$.
+Although the latter generations generally produced fitter individuals than previous generations,
+many already trained networks in previous generations exhibited strong fitness. 
+Pooling all the networks above a fitness threshold $F_0$ allows us to create a robust ensemble.
+Let $Q_t$ denote all the
+trained networks $x\in P_s$, such that $f(x)\geq F_0$ for $s\leq t$. We then create a new model $M_t$, 
+where we take the mode of the predictions of networks in $Q_t$. $M_t$ is a diverse ensemble. The new networks added to the ensemble
+are the ones that survive the death-match described above, and thus are getting progressively fitter. This process leads the ensemble to
+become fitter as the evolution progresses.
+
+\subsection{Related work}
+There have been many approaches to the problem of finding a suitable model for the structure of a neural network.
+Adams, Wallach, and Ghahramani in \cite{adams} used a non-parametric Bayesian approach to find an optimal network.
+They used a cascading Indian buffet process to create a prior over the number of layers and
+hidden units, with a Gaussian prior on the weights. To make inferences from the model, the (non-analytic)
+posterior is sampled using MCMC. The benefit of their approach is that they do not need to assume the number
+of layers. In addition to the complexity of the model, this approach is very dependent on the prior imposed on all the parameters.
+Moreover, MCMC can take a long time to converge. Therefore, this approach is highly sensitive to assumptions, and
+may be ill suited for certain problems.
+
+There have been many different neuro-evolution approaches to construct and train neural nets.
+Stanley \&  Miikkulainen in \cite{Stanley}, and Stepniewski \& Keane in \cite{Stepniewski},
+have used genetic algorithms to encode both the structure and the weights; 
+training and evolving the model without the need for a backpropagation implementation.  
+Their approach allows for the possibility of certain connections between nodes to not exist, instead
+of having each layer fully connected. In contrast to our model, running each 
+generations is computationally inexpensive, although the number of generations required to achieve a reasonably well trained
+network is very high, and convergence can be slow.
+
+The ways to implement genetic algorithms to evolve neural networks are numerous, as evidenced by \cite{Miller},\cite{Montana}, and \cite{Zhang}.
+These use different approaches than ours when it comes to interpreting the fitness functions,
+the genetic encodings, and crossover, allowing us to present a new methodology.
+The idea of using genetic algorithms to evolve neural networks is far from novel. 
+Our contribution is that the described method is comparatively simple, and lends itself very well to constructing both strong neural nets
+and a robust ensemble of them, which none of the above attempted to do.
+
+\section{Experiments}
+The genetic algorithm with ensemble was implemented in MATLAB. We used a subset of the MNIST Database of handwritten digits
+to provide data for a classification task \cite{mnistlecun}. To keep training tractable, we used only a portion of the available data set:
+5000 training examples, 5000 validation examples, and 1000 test examples. 
+Our selected training procedure ran an implementation of stochastic gradient descent
+using a combination of Nesterov update with momentum parameter $\beta$, and learning rate $\alpha$, as suggested by Sutskever et al. \cite{sutskever}.
+We annealed the learning rate with a further parameter $\delta$. 
+To regularize, we implemented $L^2$ weight decay with parameter $\lambda$.
+Finally we added dropout with probability $p$ on the second hidden layer,which has been shown to help prevent over-fitting \cite{srivastava}.
+We ran this for a constant $I$ iterations to train each neural network. When the ensemble stopped improving on the validation
+result, we stopped producing new generations, as long the evolution was not in a rut. We define a rut as a state where
+all members of a generation are nearly equally fit, and produce a poor output (usually about random for classification).
+
+\subsection{Implementation Details}
+
+\subsubsection{Stochastic Gradient Descent}
+We implemented stochastic gradient descent with the following Nesterov style updates:
+
+\begin{align*}
+w^{t+1} = w^t - \alpha_t \nabla f(w^t - \beta_t(w^t -w^{t-1})) +  \beta_t(w^t -w^{t-1})
+\end{align*}
+
+where $\alpha_t$ is the learning rate $\alpha  \delta^{\tau}$ and $\tau = \left \lfloor{ \frac {10t} I}\right \rfloor$. 
+That is the learning rate decays by $\delta$ every $\left \lceil{ \frac I {10}}\right \rceil$ iterations. The parameter
+$\beta_t$ is the momentum parameter. 
+
+\subsubsection{Regularizaton and Dropout}
+We implemented standard $L^2$ weight decay, as well as dropout. We performed the scaling of the weights during training
+rather than testing. This allows us to leave the weights untouched during testing and validation, making for a cleaner implementation.
+
+\subsubsection{Loss, Activation, and Fitness Functions}
+Our implementation used a $tanh$ activation function, with a standard least squares loss function. The fitness function
+used was the proportion of correctly classified items in a validation set.
+
+\subsection{Experimental Results}
+We trained networks with two, three, and four hidden layers respectively. The following parameters were used for each run:
+
+\begin{itemize}
+    \begin{multicols}{2}
+  \item Max Population $N$ = 250
+  \item Population $M$ = 8
+  \item Crossover $\kappa$ = 0.3
+  \item Mutation $\mu$ = 0.3
+  \item Fitness Cutoff $F_0$ = 0.8
+  \item Iterations $I$ = 250,000
+  \item Learning Rate $\alpha$ = 0.01
+  \item Learning Rate Annealing $\delta$ = 0.7
+  \item Momentum $\beta_t$ = 0.9 for all $t$
+  \item Dropout Probability $p$ = 0.5
+  \end{multicols}
+\end{itemize}
+
+Every ensemble of networks was trained five times. When the fitness of the ensemble stopped rising on the validation set, the 
+training was ended and the learned weights were used on the test set. The fittest single neural net encountered during the
+evolution was also reported. The figure below summarizes the findings. The box plots represent the fitness of the trained
+ensembles on the test set, while the x marks represent the fittest and least fit individual neural network found over all training
+runs. The black x marks represent the fittest individuals, while the green x marks represent the least fit.
+The full data set is reported in Appendix A.
+
+\begin{figure}[H]
+  \centering
+  \begin{tikzpicture}
+\begin{axis}[
+boxplot/draw direction=y,
+  xlabel={Number of Hidden Layers},
+  ylabel={Fitness},
+  ymax=1,
+  ymin=0.94,
+  xmin=1,
+  xmax=5,
+  xtick={2, 3, 4},
+ % axis y line*=left,
+ % axis x line*=bottom
+]
+\addplot+[boxplot prepared={draw position=2,
+lower whisker=0.949,
+lower quartile=0.95,
+median=0.951,
+upper quartile=0.953,
+upper whisker=0.953}]
+coordinates {};
+
+\addplot+[boxplot prepared={draw position=3,
+lower whisker=0.971,
+lower quartile=0.972,
+median=0.973, 
+upper quartile=0.973,
+upper whisker=0.975}]
+coordinates {};
+
+\addplot+[boxplot prepared={draw position=4,
+lower whisker=0.963,
+lower quartile=0.964,
+median=0.965,
+upper quartile=0.965,
+upper whisker=0.965}]
+coordinates {};
+
+\addplot[only marks,mark=x,mark size=2pt,black]  
+coordinates {
+    (2,0.9522) (3,0.9672) (4,0.9642)
+};
+
+\addplot[only marks,mark=x,mark size=2pt,green] 
+coordinates {
+    (2,0.9496) (3,0.9638) (4,0.9596)
+};
+
+
+\end{axis}
+\end{tikzpicture}
+\caption{Fitness Evaluation}
+\end{figure}
+
+
+In figure 1, a few things are immediately noticeable. Firstly, except in a few cases, the ensemble outperformed the fittest individual. 
+This is to be expected. This trend however was not observed with two hidden layers. This is likely due to the fact that
+two hidden layers are simply not complex enough to capture the full intricacies of the features. During the evolution of
+two hidden layer populations, we saw more frequent and longer ruts. In general very few two hidden layer neural networks
+performed better than a random classifier, and those that did perform better often did not perform particularly well. 
+Thus the ensemble contained a number of relatively poor neural networks, even with a high fitness cutoff $F_0$ of 0.8.
+While a lower fitness cutoff did not perform more poorly in general, it also did not perform better. Training simply
+took longer, as a greater number of less fit individuals were admitted to the ensemble.
+
+Secondly, there is a clear delineation between the different number of layers of hidden units. In particular, two hidden
+layers performed the worst, while three hidden layers performed the best. What is remarkable is how tightly the 
+results were coupled to the network architecture. Not a single of the fittest two hidden layer networks in a run
+performed as well as any of the fittest in a four hidden layer network. Similarly, the three hidden layer networks summarily
+outperformed the two and four hidden layer networks. The only slight aberration was the fittest four hidden layer
+network in a single run marginally outperformed the least well performing of the individual fittest networks with three hidden
+layers; however the difference is so slight it can be ignored - 0.9638 vs 0.9642 which equates to two additional correct classifications
+per five thousand predictions. The same pattern holds for the ensemble classifiers. Every three
+hidden layer ensemble outperformed every four hidden layer ensemble, which in turn outperformed every two hidden layer
+ensemble. 
+
+A further delineation between the different number of layers of hidden units was that networks with more layers tended to have fewer
+ruts, and exited ruts faster. Both one hidden layer and five hidden layer networks were also tested, however one hidden layer networks 
+performed abysmally. Due to the long computation times involved with training deeper networks, a full complement of five runs was not
+tested for five hidden layer networks. Five hidden layer networks performed in general no better than four hidden layer networks,
+based on the preliminary tests run. 
+
+Finally, the ensembles were remarkably consistent. The best and worst ensemble classifiers in a given architecture differed by
+a rate of only four correct predictions per thousand for the two and three hidden layer networks, and only three correct
+predictions per thousand for the four hidden layer network on the test set. The fittest individual networks in each run similarly
+showed a tight coupling. This is somewhat surprising, as the high non-convexity of the loss function, along with 
+gradient descent can lead to considerable variability even when training two networks with the same parameters. 
+
+On the other hand, while the networks were clearly delineated by the number of hidden layers, within a family of networks
+with the same number of hidden layers, the results were much less clear. Well over 50\% of networks encountered during our 
+training runs were no better than random. Those that were better than random usually displayed quite strong fitness
+(0.5000 or better, with most in the 0.7500 and up range). Furthermore amongst the fittest networks, there was quite a variety of phenotypes,
+though most of the fittest networks had a decreasing number of hidden units in the higher hidden layers. An increasing number 
+of hidden units in the higher hidden layers was particularly bad for performance on this data set. When a given network layout
+worked well, perturbing the number of units per hidden layer by a slight amount generally had little effect. Thus while 
+the search space is vast, as long as the perturbations were small, the exact structure was not overly sensitive.
+
+
+The ensembles were compared to a hand tuned neural network which achieved an error rate (fitness) of 0.9710 on average, 
+and a best fitness of 0.9750 over multiple training runs on the test set. This network however was trained with 500,000 iterations rather 
+than 250,000 iterations. When comparing with the fittest reported three hidden layer networks, and then training those networks
+for 500,000 iterations, we saw results that were very close without further tuning, around 0.9680 on average. Thus the fittest
+networks produced automatically were within 0.3\% or three correct predictions per thousand. Looking at the ensembles produced,
+we saw results that matched the hand tuned network. 
+
+
+\section{Discussion and Future Work}
+
+
+
+\subsection{Strengths/Contributions}
+
+The results witnessed where somewhat surprising. The initial motivation was to cut down the time needed to hand tune a neural network,
+by providing some insight into network configurations which produced acceptable results. The method however exceeded our expectations, 
+providing results as good as those produced by many man-hours of laborious hand tuning. In particular, the ensembles produced were as capable
+as the best hand tuned networks, even over multiple training runs. The result is a robust method which provides both good candidates
+for further hand tuning and strong ensembles. The fittest networks can give good insight
+into an overall distribution over possible architectures, which can serve as a starting point for further Bayesian methods. The real strength
+of this approach lies in the automated nature of the procedure which is generally only limited by time and available computing power.
+
+\subsection{Criticisms}
+One downfall to this method is that many neural networks need to be trained. For smaller, less complicated networks, they can be trained in
+reasonable time on standard computer hardware. The data set used is known to be somewhat simple which allows less 
+complicated neural networks to perform well. Other data sets may require more complicated and deeper neural nets to show
+similar performance. For very deep nets with many units per layer, it could take weeks or even
+months to complete an evolution. For comparison, each evolution presented in this paper took about 10-20 hours to
+train on a standard laptop with an Intel i7 Processor. The algorithm however is eminently parallelizable. Training the networks 
+in each generation can be done completely in parallel, and can be implemented in a straightforward manner to run on GPU architectures.
+Thus training can be sped up considerably. 
+
+We implemented and explored the architecture in a discrete way, setting the number of hidden layers manually. Networks with disparate 
+numbers of hidden layers were never directly compared by our method. The method however, is perfectly general, and this can be easily accommodated.
+Additional parameters can be easily added to the phenotype vectors. 
+
+
+
+\subsection{Next steps}
+The results warrant further work. Firstly, the additional parameters which were held fixed should be added to the phenotype vector, allowing 
+more general mixing and evolution. This will likely lead to even better results, as the chosen values for the fixed parameters where 
+generally just the typical values found in literature. Secondly, new data sets should be explored. While the method proved robust on the 
+chosen dataset, this need not hold in general. Further parameters can be added as well. For example, the momentum parameter could be annealed. 
+
+The ensemble generation could also be improved. A soft-max style implementation of the classifier could be used. The results of the individual
+networks in the ensemble could also be scaled by their fitness. Furthermore, the fitness cutoff $F_t$ could increase over time, allowing less
+fit networks into the ensemble initially, but only the very fittest as the gains from incremental networks decrease. One could also feed back 
+the overall fitness of the ensemble to determine the best cutoff evolution as time progresses. 
+
+Finally in order to deal with larger and deeper nets, an implementation of this method using GPUs and parallel processing would be highly 
+beneficial to further experimentation. MATLAB may not be the ideal platform, and other implementations may be better suited to environments 
+such as THEANO or PYTHON.
+
+
+\section{Conclusion}
+We set out to produce capable neural networks with minimal user intervention and hand tuning. Turning to a genetic style algorithm, we
+were able to generate many fit neural networks, and combining them into an ensemble, found results as good as those of finely hand tuned
+networks. Our results exceeded our expectations, providing excellent candidates for further hand tuning, even with only a few parameters 
+considered by the genetic algorithm. This technique shows great promise, and further work could allow for even fitter individuals and 
+ensembles.
+
+
+\newpage
+\begin{appendices}
+  \section{\\Appendix} \label{AppendixA}
+  \chapter{Experimental Results Tables}
+
+  \begin{center}
+    \begin{tabular}{ | l | l | l | l | l | l | l | l | l |}
+      \hline
+      Fitness Evaluation $L = 2$ & Trial 1 & Trial 2 & Trial 3 & Trial 4 & Trial 5 & Max & Min & Mean \\ \hline
+      Individual Maximum & 0.9502 & 0.9496 & 0.9512 & 0.9522 & 0.9512 & 0.9522 & 0.9496 & 0.9509 \\\hline
+      Ensemble Validation & 0.9446 & 0.9454 & 0.9478 & 0.9508 & 0.9504 & 0.9508 & 0.9446& 0.9478\\\hline
+      Ensemble Test & 0.9530 & 0.9500 & 0.9510 & 0.9530 & 0.9490 & 0.9530 & 0.9490 & 0.9512\\\hline
+    \end{tabular}
+  \end{center}
+
+  \begin{center}
+    \begin{tabular}{ | l | l | l | l | l | l | l | l | l |}
+      \hline
+      Fitness Evaluation $L = 3$ & Trial 1 & Trial 2 & Trial 3 & Trial 4 & Trial 5 & Max & Min & Mean \\ \hline
+      Individual Maximum & 0.9668 & 0.9654 & 0.9672 & 0.9654 & 0.9638 & 0.9672 & 0.9638 & 0.9657 \\\hline
+      Ensemble Validation & 0.9678 & 0.9706 & 0.9700 & 0.9710 & 0.9698 & 0.9710 & 0.9678& 0.9698\\\hline
+      Ensemble Test & 0.9710 & 0.9730 & 0.9730 & 0.9750 & 0.9720 & 0.9750 & 0.9710 & 0.9728\\\hline
+    \end{tabular}
+  \end{center}
+
+  \begin{center}
+    \begin{tabular}{ | l | l | l | l | l | l | l | l | l |}
+      \hline
+      Fitness Evaluation $L = 4$ & Trial 1 & Trial 2 & Trial 3 & Trial 4 & Trial 5 & Max & Min & Mean \\ \hline
+      Individual Maximum & 0.9642 & 0.9640 & 0.9626 & 0.9620 & 0.9596 & 0.9642 & 0.9596 & 0.9625 \\\hline
+      Ensemble Validation & 0.9652 & 0.9650 & 0.9644 & 0.9640 & 0.9620 & 0.9652 & 0.9620 & 0.9641\\\hline
+      Ensemble Test & 0.9650 & 0.9630 & 0.9650 & 0.9640 & 0.9650 & 0.9650 & 0.9630 & 0.9644\\\hline
+    \end{tabular}
+  \end{center}
+
+\end{appendices}
+
+\bibliography{bib}
+\bibliographystyle{alpha}
+
+
+
+%\section*{References}
+%
+%References follow the acknowledgments. Use unnumbered first-level
+%heading for the references. Any choice of citation style is acceptable
+%as long as you are consistent. It is permissible to reduce the font
+%size to \verb+small+ (9 point) when listing the references. {\bf
+%  Remember that you can use a ninth page as long as it contains
+%  \emph{only} cited references.}
+%\medskip
+%
+%\small
+%
+%[1] Alexander, J.A.\ \& Mozer, M.C.\ (1995) Template-based algorithms
+%for connectionist rule extraction. In G.\ Tesauro, D.S.\ Touretzky and
+%T.K.\ Leen (eds.), {\it Advances in Neural Information Processing
+%  Systems 7}, pp.\ 609--616. Cambridge, MA: MIT Press.
+%
+%[2] Bower, J.M.\ \& Beeman, D.\ (1995) {\it The Book of GENESIS:
+%  Exploring Realistic Neural Models with the GEneral NEural SImulation
+%  System.}  New York: TELOS/Springer--Verlag.
+%
+%[3] Hasselmo, M.E., Schnell, E.\ \& Barkai, E.\ (1995) Dynamics of
+%learning and recall at excitatory recurrent synapses and cholinergic
+%modulation in rat hippocampal region CA3. {\it Journal of
+%  Neuroscience} {\bf 15}(7):5249-5262.
+
+\end{document}

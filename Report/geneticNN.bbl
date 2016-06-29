@@ -1,0 +1,61 @@
+\newcommand{\etalchar}[1]{$^{#1}$}
+\begin{thebibliography}{SMDH13}
+
+\bibitem[AWG10]{adams}
+Ryan~P. Adams, Hanna~M. Wallach, and Zoubin Ghahramani.
+\newblock Learning the structure of deep sparse graphical models.
+\newblock {\em Journal of Machine Learning Research: Workshop and Conference
+  Proceedings (AISTATS)}, 9:1--8, 05/2010 2010.
+
+\bibitem[LC]{mnistlecun}
+Yann Lecun and Corinna Cortes.
+\newblock {The MNIST database of handwritten digits}.
+
+\bibitem[MD89]{Montana}
+David~J. Montana and Lawrence Davis.
+\newblock Training feedforward neural networks using genetic algorithms.
+\newblock In {\em Proceedings of the 11th International Joint Conference on
+  Artificial Intelligence - Volume 1}, IJCAI'89, pages 762--767, San Francisco,
+  CA, USA, 1989. Morgan Kaufmann Publishers Inc.
+
+\bibitem[MTH89]{Miller}
+Geoffrey~F. Miller, Peter~M. Todd, and Shailesh~U. Hegde.
+\newblock Designing neural networks using genetic algorithms.
+\newblock In {\em Proceedings of the Third International Conference on Genetic
+  Algorithms}, pages 379--384, San Francisco, CA, USA, 1989. Morgan Kaufmann
+  Publishers Inc.
+
+\bibitem[SHK{\etalchar{+}}14]{srivastava}
+Nitish Srivastava, Geoffrey Hinton, Alex Krizhevsky, Ilya Sutskever, and Ruslan
+  Salakhutdinov.
+\newblock Dropout: A simple way to prevent neural networks from overfitting.
+\newblock {\em Journal of Machine Learning Research}, 15:1929--1958, 2014.
+
+\bibitem[SK96]{Stepniewski}
+Slawomir~W. Stepniewski and Andy~J. Keane.
+\newblock {\em Parallel Problem Solving from Nature --- PPSN IV: International
+  Conference on Evolutionary Computation --- The 4th International Conference
+  on Parallel Problem Solving from Nature Berlin, Germany, September 22--26,
+  1996 Proceedings}, chapter Topology design of feedforward neural networks by
+  genetic algorithms, pages 771--780.
+\newblock Springer Berlin Heidelberg, Berlin, Heidelberg, 1996.
+
+\bibitem[SM02]{Stanley}
+Kenneth~O. Stanley and Risto Miikkulainen.
+\newblock Evolving neural networks through augmenting topologies.
+\newblock {\em Evol. Comput.}, 10(2):99--127, June 2002.
+
+\bibitem[SMDH13]{sutskever}
+Ilya Sutskever, James Martens, George Dahl, and Geoffrey Hinton.
+\newblock On the importance of initialization and momentum in deep learning.
+\newblock In Sanjoy Dasgupta and David Mcallester, editors, {\em Proceedings of
+  the 30th International Conference on Machine Learning (ICML-13)}, volume~28,
+  pages 1139--1147. JMLR Workshop and Conference Proceedings, May 2013.
+
+\bibitem[tZM93]{Zhang}
+Byoung tak Zhang and Heinz Muhlenbein.
+\newblock Evolving optimal neural networks using genetic algorithms with
+  occam's razor.
+\newblock {\em Complex Systems}, 7:199--220, 1993.
+
+\end{thebibliography}
